@@ -1,473 +1,606 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Proof of Concept Code | Information-Time Structure</title>
-  <meta name="description" content="Proof of Concept Code — minimal computational demonstrations and reproducible archive structure." />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proof of Concept Code | Information-Time Structure Theory</title>
+    <meta name="description" content="Proof of Concept Code — minimal computational demonstrations and reproducible archive structure." />
+    
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Inconsolata:wght@400;700&family=Michroma&display=swap" rel="stylesheet">
 
-  <!-- Fonts (match top HUD) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600&family=Michroma&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --hud-cyan: #00ffff;
+            --hud-blue: #0080ff;
+            --hud-green: #00ff88;
+            --hud-red: #ff0044;
+            --hud-yellow: #ffff00;
+            --bg-void: #000000;
+            --bg-dark: #0a0a0f;
+            --text-primary: #e0ffff;
+            --text-dim: #4a9aa8;
+            --grid-color: rgba(0, 255, 255, 0.15);
+            --scanline: rgba(0, 255, 255, 0.05);
+        }
 
-  <style>
-    :root{
-      --bg-void:#000;
-      --hud-cyan:#00ffff;
-      --hud-blue:#0080ff;
-      --hud-green:#00ff88;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-      --text-primary:#e8f7ff;
-      --text-dim:rgba(232,247,255,.62);
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-void);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
 
-      --panel:rgba(0,0,0,.78);
-      --border:rgba(0,255,255,.55);
+        /* Scanline overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 255, 0.03) 0px,
+                transparent 1px,
+                transparent 2px,
+                rgba(0, 255, 255, 0.03) 3px
+            );
+            pointer-events: none;
+            z-index: 9999;
+            animation: scanlines 8s linear infinite;
+        }
 
-      --mono:'Inconsolata', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans:'Rajdhani', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      --title:'Michroma', system-ui, sans-serif;
-    }
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(10px); }
+        }
 
-    *{box-sizing:border-box}
-    html,body{height:100%}
+        /* Animated grid background */
+        .grid-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridMove 30s linear infinite;
+            z-index: 0;
+        }
 
-    body{
-      margin:0;
-      background:
-        radial-gradient(circle at 20% 20%, rgba(0,128,255,.12), transparent 45%),
-        radial-gradient(circle at 80% 60%, rgba(0,255,255,.08), transparent 45%),
-        linear-gradient(180deg, #000 0%, #02040a 60%, #000 100%);
-      color:var(--text-primary);
-      font-family:var(--sans);
-      overflow-x:hidden;
-    }
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(40px, 40px); }
+        }
 
-    body::before{
-      content:"";
-      position:fixed;
-      inset:0;
-      pointer-events:none;
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(255,255,255,0.03) 0px,
-        rgba(255,255,255,0.03) 1px,
-        rgba(0,0,0,0) 3px,
-        rgba(0,0,0,0) 6px
-      );
-      mix-blend-mode: overlay;
-      opacity: .20;
-      z-index: 1;
-    }
+        /* Corner brackets */
+        .corner-bracket {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            border: 2px solid var(--hud-cyan);
+            pointer-events: none;
+            z-index: 100;
+        }
 
-    .grid-background{
-      position:fixed;
-      inset:-10%;
-      pointer-events:none;
-      background:
-        linear-gradient(to right, rgba(0,255,255,.07) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(0,255,255,.07) 1px, transparent 1px);
-      background-size: 70px 70px;
-      transform: perspective(900px) rotateX(62deg);
-      transform-origin: 50% 40%;
-      opacity:.16;
-      z-index:0;
-      animation: gridMove 16s linear infinite;
-    }
-    @keyframes gridMove{
-      from { background-position: 0 0, 0 0; }
-      to   { background-position: 0 700px, 700px 0; }
-    }
+        .corner-bracket.tl {
+            top: 20px;
+            left: 20px;
+            border-right: none;
+            border-bottom: none;
+        }
 
-    .corner-bracket{
-      position:fixed;
-      width:60px;height:60px;
-      border:2px solid var(--hud-cyan);
-      opacity:.35;
-      pointer-events:none;
-      z-index:2;
-    }
-    .tl{top:18px;left:18px;border-right:none;border-bottom:none}
-    .tr{top:18px;right:18px;border-left:none;border-bottom:none}
-    .bl{bottom:18px;left:18px;border-right:none;border-top:none}
-    .br{bottom:18px;right:18px;border-left:none;border-top:none}
+        .corner-bracket.tr {
+            top: 20px;
+            right: 20px;
+            border-left: none;
+            border-bottom: none;
+        }
 
-    .hud-strip{
-      position:fixed;
-      left:0; right:0;
-      height:34px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-family:var(--mono);
-      font-size:12px;
-      letter-spacing:.18em;
-      text-transform:uppercase;
-      color:rgba(232,247,255,.55);
-      background: linear-gradient(90deg, transparent, rgba(0,255,255,.12), transparent);
-      border-top:1px solid rgba(0,255,255,.18);
-      border-bottom:1px solid rgba(0,255,255,.18);
-      pointer-events:none;
-      z-index:2;
-    }
-    .hud-strip.top{ top:0; border-top:none; }
-    .hud-strip.bottom{ bottom:0; border-bottom:none; }
+        .corner-bracket.bl {
+            bottom: 20px;
+            left: 20px;
+            border-right: none;
+            border-top: none;
+        }
 
-    .hud-circle{
-      position:fixed;
-      width:86px;height:86px;
-      border-radius:50%;
-      border:1px solid rgba(0,255,255,.35);
-      box-shadow: 0 0 20px rgba(0,255,255,.14);
-      background: radial-gradient(circle at 30% 30%, rgba(0,255,255,.18), transparent 60%);
-      opacity:.55;
-      pointer-events:none;
-      z-index:2;
-    }
-    .hud-circle.c1{ top:90px; left:50px; }
-    .hud-circle.c2{ top:140px; right:60px; }
+        .corner-bracket.br {
+            bottom: 20px;
+            right: 20px;
+            border-left: none;
+            border-top: none;
+        }
 
-    .status-bar{
-      position:fixed;
-      top:38px;
-      left:0; right:0;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      padding:10px 22px;
-      font-family:var(--mono);
-      font-size:12px;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      color:rgba(232,247,255,.55);
-      pointer-events:none;
-      z-index:3;
-    }
-    .status-item{display:flex; align-items:center; gap:10px}
-    .status-dot{
-      width:8px;height:8px;border-radius:50%;
-      background: var(--hud-green);
-      box-shadow:0 0 10px rgba(0,255,136,.6);
-    }
+        /* HUD Data strips */
+        .hud-strip {
+            position: fixed;
+            font-family: 'Inconsolata', monospace;
+            font-size: 10px;
+            color: var(--hud-cyan);
+            letter-spacing: 2px;
+            z-index: 50;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
 
-    .container{
-      position:relative;
-      z-index:4;
-      max-width:1400px;
-      margin:0 auto;
-      padding:120px 40px 120px;
-    }
+        .hud-strip.top {
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
 
-    .topbar{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:16px;
-      margin-bottom:26px;
-    }
-    .brand{
-      font-family:var(--title);
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      font-size:13px;
-      color:var(--hud-cyan);
-      opacity:.95;
-    }
-    .meta{
-      font-family:var(--mono);
-      font-size:12px;
-      color:var(--text-dim);
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      text-align:right;
-      white-space:nowrap;
-    }
+        .hud-strip.bottom {
+            bottom: 10px;
+            right: 100px;
+        }
 
-    .panel{
-      background:var(--panel);
-      border:1px solid var(--border);
-      padding:34px;
-      position:relative;
-      overflow:hidden;
-      margin:18px 0 26px;
-    }
-    .panel::before{
-      content:'';
-      position:absolute;
-      inset:-1px;
-      background:linear-gradient(45deg, rgba(0,255,255,.25) 0%, transparent 55%, rgba(0,128,255,.22) 100%);
-      opacity:.18;
-      z-index:-1;
-    }
+        /* Circular HUD elements */
+        .hud-circle {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border: 2px solid var(--hud-cyan);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: rotate 20s linear infinite;
+            z-index: 1;
+        }
 
-    .h1{
-      font-family:var(--title);
-      font-size:clamp(1.35rem, 3.4vw, 2.1rem);
-      color:var(--hud-cyan);
-      margin:0 0 12px;
-      text-transform:uppercase;
-      letter-spacing:.12em;
-    }
-    .p{
-      margin:0 0 12px;
-      color:var(--text-dim);
-      font-weight:300;
-      line-height:1.75;
-      font-size:1.05rem;
-      max-width:980px;
-    }
-    .line{
-      height:1px;
-      background:linear-gradient(90deg, transparent, rgba(0,255,255,.5), transparent);
-      margin:18px 0;
-    }
+        .hud-circle::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 60%;
+            height: 60%;
+            border: 1px solid var(--hud-blue);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
 
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:16px;
-      margin-top:18px;
-    }
-    .card{
-      border:1px solid rgba(0,255,255,.28);
-      background: rgba(0,0,0,.55);
-      border-radius: 16px;
-      padding: 18px 18px;
-      position:relative;
-      overflow:hidden;
-    }
-    .card::before{
-      content:'';
-      position:absolute;
-      inset:-1px;
-      background:linear-gradient(45deg, rgba(0,255,255,.18) 0%, transparent 55%, rgba(0,128,255,.14) 100%);
-      opacity:.22;
-      z-index:-1;
-    }
-    .icon{font-size:22px; margin-bottom:10px}
-    .title{
-      margin:0 0 10px;
-      font-family:var(--title);
-      font-size:14px;
-      letter-spacing:.08em;
-      color:rgba(232,247,255,.95);
-      text-transform:uppercase;
-    }
-    .desc{
-      margin:0 0 14px;
-      font-size:14px;
-      line-height:1.65;
-      color:rgba(232,247,255,.62);
-      font-weight:300;
-      max-width:520px;
-    }
+        .hud-circle.c1 {
+            top: 100px;
+            right: 50px;
+            animation-duration: 15s;
+        }
 
-    .pill-row{display:flex; flex-wrap:wrap; gap:10px; margin:12px 0 16px;}
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid rgba(0,255,255,.28);
-      background:rgba(0,0,0,.45);
-      color:rgba(232,247,255,.62);
-      font-family:var(--mono);
-      font-size:12px;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-    }
+        .hud-circle.c2 {
+            bottom: 150px;
+            left: 80px;
+            animation-duration: 25s;
+            animation-direction: reverse;
+        }
 
-    .cta{
-      font-family:var(--sans);
-      font-size:16px;
-      font-weight:700;
-      padding:14px 22px;
-      background:transparent;
-      border:2px solid var(--hud-cyan);
-      color:var(--hud-cyan);
-      text-transform:uppercase;
-      letter-spacing:2px;
-      cursor:pointer;
-      position:relative;
-      overflow:hidden;
-      transition:all .25s;
-      text-decoration:none;
-      display:inline-block;
-    }
-    .cta::before{
-      content:'';
-      position:absolute;
-      top:0;left:-100%;
-      width:100%;height:100%;
-      background:var(--hud-cyan);
-      transition:left .25s;
-      z-index:-1;
-    }
-    .cta:hover::before{left:0}
-    .cta:hover{
-      color:var(--bg-void);
-      box-shadow:0 0 20px rgba(0,255,255,.55), inset 0 0 20px rgba(0,255,255,.18);
-      text-decoration:none;
-    }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
 
-    footer{
-      border-top:1px solid rgba(0,255,255,.55);
-      padding:44px 0 0;
-      margin-top:60px;
-      text-align:center;
-    }
-    .footer-text{
-      margin:10px auto 0;
-      color:rgba(232,247,255,.45);
-      max-width:1000px;
-      line-height:1.8;
-      font-weight:300;
-    }
-    .footer-timestamp{
-      margin-top:22px;
-      font-family:var(--mono);
-      font-size:12px;
-      color:rgba(232,247,255,.35);
-      letter-spacing:.12em;
-      text-transform:uppercase;
-    }
+        /* Status bar */
+        .status-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 1px solid var(--hud-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-family: 'Inconsolata', monospace;
+            font-size: 11px;
+            z-index: 1000;
+        }
 
-    @media (max-width: 980px){
-      .grid{grid-template-columns: 1fr;}
-    }
-    @media (max-width: 900px){
-      .container{padding:115px 18px 115px}
-      .topbar{flex-direction:column; align-items:flex-start}
-      .meta{text-align:left; white-space:normal}
-      .hud-circle{display:none}
-    }
-    @media (max-width:768px){
-      .corner-bracket{width:40px;height:40px}
-      .status-bar{padding:10px 14px}
-    }
-  </style>
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--hud-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Main container */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 80px 40px 60px;
+        }
+
+        /* Brand header */
+        .brand-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            padding-top: 20px;
+        }
+
+        .brand {
+            font-family: 'Michroma', sans-serif;
+            font-size: 14px;
+            color: var(--hud-cyan);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .meta {
+            font-family: 'Inconsolata', monospace;
+            font-size: 12px;
+            color: var(--text-dim);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* Panel */
+        .panel {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--hud-cyan);
+            padding: 40px;
+            margin: 40px 0;
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(45deg, 
+                var(--hud-cyan) 0%, 
+                transparent 50%, 
+                var(--hud-blue) 100%);
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        .panel-title {
+            font-family: 'Michroma', sans-serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            color: var(--hud-cyan);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .panel-text {
+            color: var(--text-dim);
+            line-height: 1.8;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            max-width: 900px;
+        }
+
+        /* Pills */
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .pill {
+            padding: 8px 16px;
+            border: 1px solid var(--hud-blue);
+            background: rgba(0, 128, 255, 0.1);
+            color: var(--text-primary);
+            font-family: 'Inconsolata', monospace;
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            border-radius: 20px;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--hud-cyan), 
+                transparent);
+            margin: 30px 0;
+        }
+
+        /* CTA Buttons */
+        .cta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .cta {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 14px 28px;
+            background: transparent;
+            border: 2px solid var(--hud-cyan);
+            color: var(--hud-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--hud-cyan);
+            transition: left 0.3s;
+            z-index: -1;
+        }
+
+        .cta:hover::before {
+            left: 0;
+        }
+
+        .cta:hover {
+            color: var(--bg-void);
+            box-shadow: 
+                0 0 20px var(--hud-cyan),
+                inset 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        /* Cards grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--hud-blue);
+            padding: 30px;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 0;
+            background: var(--hud-cyan);
+            transition: height 0.3s;
+        }
+
+        .card:hover::before {
+            height: 100%;
+        }
+
+        .card:hover {
+            border-color: var(--hud-cyan);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-family: 'Michroma', sans-serif;
+            font-size: 1.2rem;
+            color: var(--hud-green);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .card-desc {
+            color: var(--text-dim);
+            line-height: 1.7;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--hud-cyan);
+            padding: 40px 0;
+            margin-top: 80px;
+            text-align: center;
+        }
+
+        .footer-text {
+            color: var(--text-dim);
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .footer-timestamp {
+            font-family: 'Inconsolata', monospace;
+            font-size: 12px;
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .corner-bracket {
+                width: 40px;
+                height: 40px;
+            }
+
+            .hud-circle {
+                display: none;
+            }
+
+            .container {
+                padding: 80px 20px 60px;
+            }
+
+            .brand-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
-
 <body>
-  <div class="grid-background"></div>
+    <!-- Corner brackets -->
+    <div class="corner-bracket tl"></div>
+    <div class="corner-bracket tr"></div>
+    <div class="corner-bracket bl"></div>
+    <div class="corner-bracket br"></div>
 
-  <div class="corner-bracket tl"></div>
-  <div class="corner-bracket tr"></div>
-  <div class="corner-bracket bl"></div>
-  <div class="corner-bracket br"></div>
+    <!-- HUD elements -->
+    <div class="hud-strip top">CODE / REPRODUCIBILITY / PORTS</div>
+    <div class="hud-strip bottom">ARCHIVE / CODE / OK</div>
+    <div class="hud-circle c1"></div>
+    <div class="hud-circle c2"></div>
 
-  <div class="hud-strip top">CODE / REPRODUCIBILITY / PORTS</div>
-  <div class="hud-strip bottom">ARCHIVE / CODE / OK</div>
+    <!-- Grid background -->
+    <div class="grid-background"></div>
 
-  <div class="hud-circle c1"></div>
-  <div class="hud-circle c2"></div>
-
-  <div class="status-bar">
-    <div class="status-item"><span class="status-dot"></span><span>ARCHIVE ONLINE</span></div>
-    <div class="status-item"><span id="status-time">—</span></div>
-    <div class="status-item"><span>DIMPRODUCTIONS</span></div>
-  </div>
-
-  <div class="container">
-    <div class="topbar">
-      <div class="brand">Information-Time Structure</div>
-      <div class="meta" id="timestamp">—</div>
+    <!-- Status bar -->
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-dot"></div>
+            <span>ARCHIVE ONLINE</span>
+        </div>
+        <div class="status-item">
+            <span>CODE INDEX</span>
+        </div>
     </div>
 
-    <section class="panel">
-      <h1 class="h1">Proof of Concept Code</h1>
-      <p class="p">
-        Minimal computational demonstrations for detector sensitivity under synthetic boundary constraints.
-        This material does not claim evidence of future-origin signals or physical temporal effects.
-      </p>
-
-      <div class="pill-row">
-        <span class="pill">conceptual</span>
-        <span class="pill">detector sensitivity</span>
-        <span class="pill">synthetic boundary</span>
-        <span class="pill">reproducible</span>
-      </div>
-
-      <div class="line"></div>
-
-      <div class="pill-row" style="margin-top:0">
-        <a class="cta" href="/" aria-label="Back to main HUD">Back to Main HUD</a>
-        <a class="cta" href="/theory/" aria-label="Theoretical framework">Theoretical Framework</a>
-        <a class="cta" href="/specs/" aria-label="Technical specifications">Technical Specifications</a>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="grid">
-        <div class="card">
-          <div class="icon">🐍</div>
-          <h3 class="title">Python</h3>
-          <p class="desc">
-            Quick-start script and minimal reference implementation for temporal asymmetry indicators.
-          </p>
-          <div class="pill-row">
-            <span class="pill">quickstart</span>
-            <span class="pill">minimal</span>
-            <span class="pill">reproducible</span>
-          </div>
-          <a class="cta" href="/code/python/">Open</a>
+    <div class="container">
+        <div class="brand-header">
+            <div class="brand">Information-Time Structure</div>
         </div>
 
-        <div class="card">
-          <div class="icon">🧪</div>
-          <h3 class="title">Notebook</h3>
-          <p class="desc">
-            Reserved for interactive notebooks (plots, parameter sweeps, reproducible runs).
-          </p>
-          <div class="pill-row">
-            <span class="pill">reserved</span>
-            <span class="pill">plots</span>
-            <span class="pill">sweeps</span>
-          </div>
-          <a class="cta" href="#" onclick="return false;" aria-disabled="true">Reserved</a>
-        </div>
+        <section class="panel">
+            <h1 class="panel-title">Proof of Concept Code</h1>
+            <p class="panel-text">
+                Minimal computational demonstrations for detector sensitivity under synthetic boundary constraints.
+                This material does not claim evidence of future-origin signals or physical temporal effects.
+            </p>
 
-        <div class="card">
-          <div class="icon">📦</div>
-          <h3 class="title">Repository</h3>
-          <p class="desc">
-            Source archive for reproducibility and long-term mirroring.
-            Use this to clone the structure, verify assets, and preserve the record.
-          </p>
-          <div class="pill-row">
-            <span class="pill">static site</span>
-            <span class="pill">assets</span>
-            <span class="pill">mirror</span>
-          </div>
-          <!-- TODO: replace YOUR_REPO_URL -->
-          <a class="cta" href="YOUR_REPO_URL" target="_blank" rel="noopener">Open GitHub</a>
-        </div>
-      </div>
-    </section>
+            <div class="pill-row">
+                <span class="pill">conceptual</span>
+                <span class="pill">detector sensitivity</span>
+                <span class="pill">synthetic boundary</span>
+                <span class="pill">reproducible</span>
+            </div>
 
-    <footer>
-      <p class="footer-text">
-        Preserved by DIMProductions Experimental Research Archive.<br>
-        Conceptual code index — reproducibility first.
-      </p>
-      <div class="footer-timestamp" id="footer-time">—</div>
-    </footer>
-  </div>
+            <div class="divider"></div>
 
-  <script>
-    function updateTime(){
-      const now = new Date();
-      const ts = now.toISOString().replace('T',' ').substring(0,19) + ' UTC';
-      const a = document.getElementById('timestamp');
-      const b = document.getElementById('footer-time');
-      const c = document.getElementById('status-time');
-      if (a) a.textContent = ts;
-      if (b) b.textContent = `CODE INDEX PUBLISHED: ${ts} // VERSION 1.0`;
-      if (c) c.textContent = ts;
-    }
-    updateTime();
-    setInterval(updateTime, 1000);
-  </script>
+            <div class="cta-row">
+                <a class="cta" href="/">Back to Main HUD</a>
+                <a class="cta" href="/theory/">Theoretical Framework</a>
+                <a class="cta" href="/specs/">Technical Specifications</a>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">🐍</div>
+                    <h3 class="card-title">Python</h3>
+                    <p class="card-desc">
+                        Quick-start script and minimal reference implementation for temporal asymmetry indicators.
+                    </p>
+                    <div class="pill-row">
+                        <span class="pill">quickstart</span>
+                        <span class="pill">minimal</span>
+                        <span class="pill">reproducible</span>
+                    </div>
+                    <a class="cta" href="/code/python/">Open</a>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">🧪</div>
+                    <h3 class="card-title">Notebook</h3>
+                    <p class="card-desc">
+                        Reserved for interactive notebooks (plots, parameter sweeps, reproducible runs).
+                    </p>
+                    <div class="pill-row">
+                        <span class="pill">reserved</span>
+                        <span class="pill">plots</span>
+                        <span class="pill">sweeps</span>
+                    </div>
+                    <a class="cta" href="#" onclick="return false;" style="opacity: 0.5; cursor: not-allowed;">Reserved</a>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">📦</div>
+                    <h3 class="card-title">Repository</h3>
+                    <p class="card-desc">
+                        Source archive for reproducibility and long-term mirroring.
+                        Use this to clone the structure, verify assets, and preserve the record.
+                    </p>
+                    <div class="pill-row">
+                        <span class="pill">static site</span>
+                        <span class="pill">assets</span>
+                        <span class="pill">mirror</span>
+                    </div>
+                    <a class="cta" href="YOUR_REPO_URL" target="_blank" rel="noopener">Open GitHub</a>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p class="footer-text">
+                Preserved by DIMProductions Experimental Research Archive.<br>
+                Conceptual code index — reproducibility first.
+            </p>
+            <div class="footer-timestamp" id="footer-time">—</div>
+        </footer>
+    </div>
+
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const timestamp = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+            document.getElementById('footer-time').textContent = 
+                `PUBLISHED: ${timestamp}`;
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
 </body>
 </html>
