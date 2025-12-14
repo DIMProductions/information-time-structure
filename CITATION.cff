@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+title: "Information-Time Structure Theory (ITST)"
+message: "If you use or reference this framework, please cite it."
+type: software
+authors:
+  - name: "A. Eis Calder"
+repository-code: "https://github.com/DIMProductions/information-time-structure"
+url: "https://information-time-structure.dim.productions/"
+license: "CC-BY-4.0"
+keywords:
+  - information theory
+  - temporal asymmetry
+  - boundary conditions
+  - model comparison
+  - receiver-only framework
