@@ -822,9 +822,6 @@
         <div class="status-item">
             <span>ARCHIVE</span>
         </div>
-        <div class="status-item">
-            <span id="timestamp"></span>
-        </div>
     </div>
 
     <div class="container">
@@ -1097,7 +1094,6 @@
         function updateTime() {
             const now = new Date();
             const timestamp = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
-            document.getElementById('timestamp').textContent = timestamp;
             document.getElementById('footer-time').textContent =
                 `PUBLISHED: ${timestamp}`;
         }
