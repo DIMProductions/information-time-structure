@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Theoretical Framework | Information-Time Structure</title>
+  <meta name="description" content="Information-Time Structure Theory — future-constrained model comparison for present-accessible information structures." />
+
+  <!-- Fonts (match top HUD) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600&family=Michroma&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg-void:#000;
+      --hud-cyan:#00ffff;
+      --hud-blue:#0080ff;
+      --hud-green:#00ff88;
+
+      --text-primary:#e8f7ff;
+      --text-dim:rgba(232,247,255,.62);
+
+      --panel:rgba(0,0,0,.78);
+      --border:rgba(0,255,255,.55);
+
+      --mono:'Inconsolata', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans:'Rajdhani', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      --title:'Michroma', system-ui, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+
+    /* ===== Top HUD World (background + overlay) ===== */
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(0,128,255,.12), transparent 45%),
+        radial-gradient(circle at 80% 60%, rgba(0,255,255,.08), transparent 45%),
+        linear-gradient(180deg, #000 0%, #02040a 60%, #000 100%);
+      color:var(--text-primary);
+      font-family:var(--sans);
+      overflow-x:hidden;
+    }
+
+    /* scanline overlay */
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.03) 0px,
+        rgba(255,255,255,0.03) 1px,
+        rgba(0,0,0,0) 3px,
+        rgba(0,0,0,0) 6px
+      );
+      mix-blend-mode: overlay;
+      opacity: .20;
+      z-index: 1;
+    }
+
+    /* moving grid background */
+    .grid-background{
+      position:fixed;
+      inset:-10%;
+      pointer-events:none;
+      background:
+        linear-gradient(to right, rgba(0,255,255,.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,255,255,.07) 1px, transparent 1px);
+      background-size: 70px 70px;
+      transform: perspective(900px) rotateX(62deg);
+      transform-origin: 50% 40%;
+      opacity:.16;
+      z-index:0;
+      animation: gridMove 16s linear infinite;
+    }
+    @keyframes gridMove{
+      from { background-position: 0 0, 0 0; }
+      to   { background-position: 0 700px, 700px 0; }
+    }
+
+    /* corner brackets */
+    .corner-bracket{
+      position:fixed;
+      width:60px;height:60px;
+      border:2px solid var(--hud-cyan);
+      opacity:.35;
+      pointer-events:none;
+      z-index:2;
+    }
+    .tl{top:18px;left:18px;border-right:none;border-bottom:none}
+    .tr{top:18px;right:18px;border-left:none;border-bottom:none}
+    .bl{bottom:18px;left:18px;border-right:none;border-top:none}
+    .br{bottom:18px;right:18px;border-left:none;border-top:none}
+
+    /* HUD strips */
+    .hud-strip{
+      position:fixed;
+      left:0; right:0;
+      height:34px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:var(--mono);
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:rgba(232,247,255,.55);
+      background: linear-gradient(90deg, transparent, rgba(0,255,255,.12), transparent);
+      border-top:1px solid rgba(0,255,255,.18);
+      border-bottom:1px solid rgba(0,255,255,.18);
+      pointer-events:none;
+      z-index:2;
+    }
+    .hud-strip.top{ top:0; border-top:none; }
+    .hud-strip.bottom{ bottom:0; border-bottom:none; }
+
+    /* HUD circles (decor) */
+    .hud-circle{
+      position:fixed;
+      width:86px;height:86px;
+      border-radius:50%;
+      border:1px solid rgba(0,255,255,.35);
+      box-shadow: 0 0 20px rgba(0,255,255,.14);
+      background: radial-gradient(circle at 30% 30%, rgba(0,255,255,.18), transparent 60%);
+      opacity:.55;
+      pointer-events:none;
+      z-index:2;
+    }
+    .hud-circle.c1{ top:90px; left:50px; }
+    .hud-circle.c2{ top:140px; right:60px; }
+
+    /* status bar */
+    .status-bar{
+      position:fixed;
+      top:38px;
+      left:0; right:0;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:10px 22px;
+      font-family:var(--mono);
+      font-size:12px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:rgba(232,247,255,.55);
+      pointer-events:none;
+      z-index:3;
+    }
+    .status-item{display:flex; align-items:center; gap:10px}
+    .status-dot{
+      width:8px;height:8px;border-radius:50%;
+      background: var(--hud-green);
+      box-shadow:0 0 10px rgba(0,255,136,.6);
+    }
+
+    /* ===== Layout ===== */
+    .container{
+      position:relative;
+      z-index:4;
+      max-width:1400px;
+      margin:0 auto;
+      padding:120px 40px 120px; /* room for strips/status */
+    }
+
+    .topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:26px;
+    }
+    .brand{
+      font-family:var(--title);
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-size:13px;
+      color:var(--hud-cyan);
+      opacity:.95;
+    }
+    .meta{
+      font-family:var(--mono);
+      font-size:12px;
+      color:var(--text-dim);
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      text-align:right;
+      white-space:nowrap;
+    }
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      padding:34px;
+      position:relative;
+      overflow:hidden;
+      margin:18px 0 26px;
+    }
+    .panel::before{
+      content:'';
+      position:absolute;
+      inset:-1px;
+      background:linear-gradient(45deg, rgba(0,255,255,.25) 0%, transparent 55%, rgba(0,128,255,.22) 100%);
+      opacity:.18;
+      z-index:-1;
+    }
+
+    .h1{
+      font-family:var(--title);
+      font-size:clamp(1.35rem, 3.4vw, 2.1rem);
+      color:var(--hud-cyan);
+      margin:0 0 12px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+    }
+    .h2{
+      font-family:var(--title);
+      font-size:1.05rem;
+      color:var(--hud-green);
+      margin:26px 0 12px;
+      text-transform:uppercase;
+      letter-spacing:.10em;
+    }
+    .p{
+      margin:0 0 12px;
+      color:var(--text-dim);
+      font-weight:300;
+      line-height:1.75;
+      font-size:1.05rem;
+      max-width:980px;
+    }
+    .line{
+      height:1px;
+      background:linear-gradient(90deg, transparent, rgba(0,255,255,.5), transparent);
+      margin:18px 0;
+    }
+
+    .quote{
+      border-left:3px solid rgba(0,255,255,.55);
+      background:rgba(0,0,0,.42);
+      padding:12px 14px;
+      border-radius:12px;
+      margin:12px 0;
+      color:rgba(232,247,255,.80);
+      max-width:980px;
+    }
+
+    .math{
+      font-family:var(--mono);
+      background:rgba(0,0,0,.55);
+      border:1px solid rgba(0,255,255,.28);
+      border-radius:14px;
+      padding:12px 14px;
+      margin:12px 0;
+      overflow:auto;
+      max-width:980px;
+    }
+
+    pre{
+      margin:14px 0 0;
+      padding:16px 18px;
+      border:1px solid rgba(0,255,255,.35);
+      background:rgba(0,0,0,.88);
+      overflow:auto;
+      font-family:var(--mono);
+      font-size:13px;
+      line-height:1.55;
+      color:rgba(232,247,255,.85);
+      border-radius:14px;
+      max-width:980px;
+    }
+
+    ul,ol{
+      margin:10px 0 14px 22px;
+      color:rgba(232,247,255,.62);
+      font-weight:300;
+      max-width:980px;
+    }
+    li{margin:6px 0}
+
+    .btnrow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:14px;
+      margin-top:18px;
+    }
+
+    .cta{
+      font-family:var(--sans);
+      font-size:16px;
+      font-weight:700;
+      padding:14px 22px;
+      background:transparent;
+      border:2px solid var(--hud-cyan);
+      color:var(--hud-cyan);
+      text-transform:uppercase;
+      letter-spacing:2px;
+      cursor:pointer;
+      position:relative;
+      overflow:hidden;
+      transition:all .25s;
+      text-decoration:none;
+      display:inline-block;
+    }
+    .cta::before{
+      content:'';
+      position:absolute;
+      top:0;left:-100%;
+      width:100%;height:100%;
+      background:var(--hud-cyan);
+      transition:left .25s;
+      z-index:-1;
+    }
+    .cta:hover::before{left:0}
+    .cta:hover{
+      color:var(--bg-void);
+      box-shadow:0 0 20px rgba(0,255,255,.55), inset 0 0 20px rgba(0,255,255,.18);
+      text-decoration:none;
+    }
+
+    footer{
+      border-top:1px solid rgba(0,255,255,.55);
+      padding:44px 0 0;
+      margin-top:60px;
+      text-align:center;
+    }
+    .footer-text{
+      margin:10px auto 0;
+      color:rgba(232,247,255,.45);
+      max-width:1000px;
+      line-height:1.8;
+      font-weight:300;
+    }
+    .footer-timestamp{
+      margin-top:22px;
+      font-family:var(--mono);
+      font-size:12px;
+      color:rgba(232,247,255,.35);
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+
+    @media (max-width: 900px){
+      .container{padding:115px 18px 115px}
+      .topbar{flex-direction:column; align-items:flex-start}
+      .meta{text-align:left; white-space:normal}
+      .hud-circle{display:none}
+    }
+
+    @media (max-width:768px){
+      .corner-bracket{width:40px;height:40px}
+      .status-bar{padding:10px 14px}
+    }
+  </style>
+
+  <!-- MathJax (equations) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)']],
+        displayMath: [['\\[','\\]'], ['$$','$$']]
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+
+<body>
+  <div class="grid-background"></div>
+
+  <div class="corner-bracket tl"></div>
+  <div class="corner-bracket tr"></div>
+  <div class="corner-bracket bl"></div>
+  <div class="corner-bracket br"></div>
+
+  <div class="hud-strip top">SIGNAL / MODEL / EVALUATION</div>
+  <div class="hud-strip bottom">ARCHIVE / THEORY / OK</div>
+
+  <div class="hud-circle c1"></div>
+  <div class="hud-circle c2"></div>
+
+  <div class="status-bar">
+    <div class="status-item"><span class="status-dot"></span><span>ARCHIVE ONLINE</span></div>
+    <div class="status-item"><span id="status-time">—</span></div>
+    <div class="status-item"><span>DIMPRODUCTIONS</span></div>
+  </div>
+
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">Information-Time Structure</div>
+      <div class="meta" id="timestamp">—</div>
+    </div>
+
+    <section class="panel">
+      <h1 class="h1">Theoretical Framework</h1>
+      <p class="p">
+        Information-Time Structure and Model Comparison. This page hosts the full framework text in a form suitable for long-term preservation.
+      </p>
+
+      <div class="btnrow">
+        <a class="cta" href="/" aria-label="Back to main HUD">Back to Main HUD</a>
+        <a class="cta" href="/specs/" aria-label="Technical specifications">Technical Specifications</a>
+        <a class="cta" href="/code/" aria-label="Proof of concept code">Proof of Concept Code</a>
+      </div>
+
+      <div class="line"></div>
+
+      <p class="p">
+        Author: <span style="color:var(--hud-cyan)">A. Eis Calder</span><br>
+        Preserved by: <span style="color:var(--hud-cyan)">DIMProductions Experimental Research Archive</span><br>
+        Status: <span style="color:var(--hud-green)">Concept / Experimental</span>
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2 class="h2">Information-Time Structure Theory</h2>
+
+      <p class="p">
+        <em>This document defines a theoretical framework in which a so-called “time machine” is not a device for physical temporal travel,
+        but a system for extracting present-accessible information structures that are more naturally described by future-constrained models
+        than by past-causal ones.</em>
+      </p>
+
+      <div class="line"></div>
+
+      <h2 class="h2">0. Fixed Definition</h2>
+      <div class="quote">
+        <strong>
+          A time machine is not an apparatus that moves matter through time, but a theoretical framework for extracting information structures in the present that are more naturally explained by future-origin models.
+        </strong>
+      </div>
+      <p class="p">
+        This theory explicitly excludes bodily transport, causal intervention, and any form of physical time reversal.
+      </p>
+
+      <h2 class="h2">1. Standard Observation Model (Past-Origin)</h2>
+      <div class="math">
+        \[
+          x(t) = s_{past}(t) + n(t)
+        \]
+      </div>
+      <ul>
+        <li><strong>Meaning</strong> = past-origin signal</li>
+        <li><strong>Noise</strong> = unexplained residual</li>
+      </ul>
+      <p class="p">This assumption itself is treated as a hypothesis.</p>
+
+      <h2 class="h2">2. Redefinition of Noise</h2>
+      <p class="p">Noise is not meaningless.</p>
+      <div class="quote">
+        <strong>Noise is the projection of information that has not yet been separated by temporal direction.</strong>
+      </div>
+
+      <h2 class="h2">3. Reverse Model (Future-Origin)</h2>
+      <div class="math">
+        \[
+          x(t) = s_{future}(t) + n'(t)
+        \]
+      </div>
+      <p class="p">Future constraints are introduced as an explanatory hypothesis.</p>
+
+      <h2 class="h2">4. Dual-Hypothesis Evaluation</h2>
+      <div class="math">
+        \[
+          H_{past},\ H_{future}
+        \]
+      </div>
+      <p class="p">These hypotheses are compared using information-theoretic criteria.</p>
+
+      <h2 class="h2">5. Information-Time Machine</h2>
+      <p class="p">
+        Components for which the future-origin model is informationally superior are treated as reception targets.
+      </p>
+
+      <h2 class="h2">6. Asymmetric Communication</h2>
+      <p class="p">
+        Present: reception only<br>
+        Future: intervention possible once transmission becomes feasible
+      </p>
+
+      <h2 class="h2">7. Conclusion</h2>
+      <p class="p">
+        The theory is preserved as a reception point for future civilizations.
+      </p>
+
+      <div class="line"></div>
+
+      <h2 class="h2">8. Temporal Interference Pseudo-Data Simulation (A′: Concrete Implementation)</h2>
+      <p class="p">
+        This section defines a minimal implementation-level pseudo-experiment to verify whether temporal interference detection measures actually respond.
+        The purpose is not theoretical proof, but sensitivity testing of the detector.
+      </p>
+
+      <h2 class="h2">8.1 Baseline Generation (Pure Past-Origin)</h2>
+      <p class="p">A self-regressive process with white noise is used as a past-origin model.</p>
+      <pre><code>import numpy as np
+
+T = 5000
+phi = 0.8
+noise = np.random.normal(0, 1, T)
+
+x_past = np.zeros(T)
+for t in range(1, T):
+    x_past[t] = phi * x_past[t-1] + noise[t]</code></pre>
+      <p class="p">This series is statistically almost symmetric under time reversal.</p>
+
+      <h2 class="h2">8.2 Pseudo Future-Constrained Data Generation</h2>
+      <p class="p">Rather than physical future causation, a <strong>mathematical future boundary condition</strong> is introduced.</p>
+      <pre><code># Terminal constraint
+C = 5.0
+x_future = x_past.copy()
+
+# Exponentially propagate influence backward from the terminal state
+for k in range(1, T):
+    alpha = np.exp(-k / 200)
+    x_future[T-k] += alpha * (C - x_future[T-1])</code></pre>
+      <p class="p">
+        This numerically models a situation in which a future boundary condition weakly interferes with the past.
+      </p>
+
+      <h2 class="h2">8.3 Detection Measure Examples</h2>
+
+      <p class="p"><strong>Time-Reversal Asymmetry</strong></p>
+      <pre><code>def time_reversal_asymmetry(x):
+    xr = x[::-1]
+    return np.mean((x - xr)**2)
+
+Delta_TR_past = time_reversal_asymmetry(x_past)
+Delta_TR_future = time_reversal_asymmetry(x_future)</code></pre>
+
+      <p class="p"><strong>Observation-Window Scale Anomaly</strong></p>
+      <pre><code>def window_variance(x, tau):
+    return np.var([x[i:i+tau] for i in range(0, len(x)-tau, tau)])
+
+scales = [10, 50, 100, 200]
+var_past = [window_variance(x_past, s) for s in scales]
+var_future = [window_variance(x_future, s) for s in scales]</code></pre>
+
+      <h2 class="h2">8.4 Decision Criterion (Example)</h2>
+      <pre><code>I_TI = (Delta_TR_future - Delta_TR_past)</code></pre>
+      <p class="p">
+        If \(I_{TI} &gt; 0\) is stably observed, the pseudo future-constrained data is classified as a candidate containing temporal interference.
+      </p>
+
+      <h2 class="h2">8.5 Meaning of This Section</h2>
+      <p class="p">
+        Crucially, no assumption of the existence of the future, no retrocausality, and no quantum effects are required for future-origin-like distortions to be detectable.
+        This supports the view that the information-time machine is not a physical apparatus, but a framework for receiving information structures.
+      </p>
+
+      <div class="line"></div>
+
+      <h2 class="h2">9. Theory Preservation Format (D: Civilizational Archive Design)</h2>
+      <p class="p">
+        This chapter defines design principles for preserving the theory in a form that can be reconstructed by future civilizations without degradation.
+        The objective is not persuasion, but:
+      </p>
+      <div class="quote"><strong>embedding the theory as a reconstructable reception point.</strong></div>
+
+      <h2 class="h2">9.1 Core Preservation Principles</h2>
+      <ol>
+        <li>Independence from era-specific vocabulary</li>
+        <li>Reinterpretability under changing physical constants or unit systems</li>
+        <li>Robustness against misreading</li>
+        <li>Meaning emergence without an explicit sender</li>
+      </ol>
+
+      <h2 class="h2">9.2 Three-Layer Preservation Model</h2>
+      <ul>
+        <li><strong>Layer 1:</strong> Formal layer (equations and algorithms)</li>
+        <li><strong>Layer 2:</strong> Operational layer (pseudo-experiments)</li>
+        <li><strong>Layer 3:</strong> Intent layer (minimal declaration)</li>
+      </ul>
+
+      <h2 class="h2">9.3 Civilization-Resilient Formats</h2>
+      <ul>
+        <li>Mathematical notation (paper, stone, optical media)</li>
+        <li>Language-independent executable pseudocode</li>
+        <li>Compressed minimal equation sets</li>
+      </ul>
+
+      <h2 class="h2">9.4 Why This Is Not Encrypted</h2>
+      <ul>
+        <li>Encryption decays with time</li>
+        <li>Unreadable information cannot function as a reception point</li>
+      </ul>
+      <p class="p">Instead, the adopted strategy is:</p>
+      <div class="quote"><strong>structural invisibility.</strong></div>
+
+      <h2 class="h2">9.5 Conclusion of This Chapter</h2>
+      <p class="p">
+        The theory should be preserved not as a device, a proof, or a communication protocol, but as
+        a reception point that is regenerated only when a civilization independently reaches the same theoretical position.
+      </p>
+    </section>
+
+    <footer>
+      <p class="footer-text">
+        Preserved by DIMProductions Experimental Research Archive.<br>
+        This document does not demand belief. It preserves reconstructable procedure.
+      </p>
+      <div class="footer-timestamp" id="footer-time">—</div>
+    </footer>
+  </div>
+
+  <script>
+    function updateTime(){
+      const now = new Date();
+      const ts = now.toISOString().replace('T',' ').substring(0,19) + ' UTC';
+      const a = document.getElementById('timestamp');
+      const b = document.getElementById('footer-time');
+      const c = document.getElementById('status-time');
+      if (a) a.textContent = ts;
+      if (b) b.textContent = `THEORY PAGE PUBLISHED: ${ts} // VERSION 1.0`;
+      if (c) c.textContent = ts;
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+  </script>
+</body>
+</html>
